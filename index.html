@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dev-Command Navigator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+/* ============================================================
+   RESET & ROOT
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;
+  --card:#1e2530;--card-border:#2d3748;
+  --sidebar-bg:#0d1117;--topbar-bg:rgba(13,17,23,0.95);
+  --accent:#007acc;--accent2:#00d4ff;
+  --git:#f05133;--linux:#f5c518;--docker:#2496ed;
+  --fav:#f6c90e;--rescue:#ff4d4d;
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --code-bg:#0a0e14;--code-text:#79c0ff;
+  --success:#3fb950;--warning:#f0883e;
+  --sidebar-w:250px;
+  --radius:10px;
+  --trans:0.18s ease;
+  --font:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --mono:'JetBrains Mono','Courier New',Consolas,monospace;
+}
+[data-theme="light"]{
+  --bg:#f0f2f5;--bg2:#fff;--bg3:#f6f8fa;
+  --card:#fff;--card-border:#d0d7de;
+  --sidebar-bg:#161b27;--topbar-bg:rgba(240,242,245,0.96);
+  --text:#24292f;--text2:#57606a;--text3:#8c959f;
+  --code-bg:#eef0f3;--code-text:#0550ae;
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--font);font-size:14px;line-height:1.6;
+  min-height:100vh;overflow-x:hidden;
+}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--card-border);border-radius:10px}
+button,input,select,textarea{font-family:var(--font);outline:none}
+
+/* ============================================================
+   LAYOUT SHELL
+   ============================================================ */
+.app-shell{display:flex;min-height:100vh}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--sidebar-bg);
+  border-right:1px solid rgba(255,255,255,0.07);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;height:100vh;
+  z-index:1000;
+  transition:transform var(--trans);
+  overflow:hidden;
+}
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.65);z-index:999;
+  backdrop-filter:blur(3px);
+}
+.sidebar-overlay.show{display:block}
+
+/* Brand */
+.sb-header{
+  padding:16px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{
+  width:36px;height:36px;border-radius:9px;
+  background:linear-gradient(135deg,#007acc,#00d4ff);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:16px;flex-shrink:0;
+}
+.brand-name{font-family:var(--mono);font-size:12.5px;font-weight:700;color:#fff;line-height:1.2}
+.brand-sub{font-size:10px;color:var(--accent2);opacity:.8}
+.sb-close{
+  background:none;border:none;color:rgba(255,255,255,.6);
+  font-size:16px;cursor:pointer;padding:4px;border-radius:5px;
+  display:none;
+}
+.sb-close:hover{color:#fff;background:rgba(255,255,255,.1)}
+
+/* Sidebar search */
+.sb-search{margin:10px 12px;position:relative;flex-shrink:0}
+.sb-search i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px}
+.sb-search input{
+  width:100%;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.09);border-radius:7px;
+  padding:7px 10px 7px 30px;color:#fff;font-size:12px;
+  transition:border-color var(--trans);
+}
+.sb-search input:focus{border-color:var(--accent)}
+.sb-search input::placeholder{color:var(--text3)}
+
+/* Nav */
+.sb-nav{flex:1;overflow-y:auto;padding:2px 8px 8px}
+.nav-section-label{
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
+  color:var(--text3);padding:10px 8px 4px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-section-label-btn{
+  background:none;border:none;color:var(--text3);font-size:13px;
+  cursor:pointer;padding:2px 5px;border-radius:4px;line-height:1;
+  transition:all var(--trans);
+}
+.nav-section-label-btn:hover{background:rgba(255,255,255,.1);color:var(--accent2)}
+
+.nav-btn{
+  display:flex;align-items:center;gap:9px;
+  width:100%;padding:8px 10px;background:none;border:none;
+  color:rgba(255,255,255,.55);font-size:13px;
+  border-radius:7px;cursor:pointer;text-align:left;
+  transition:all var(--trans);
+}
+.nav-btn:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-btn.active{background:rgba(0,122,204,.22);color:#fff}
+.nav-icon{
+  width:26px;height:26px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;flex-shrink:0;
+}
+.ic-all{background:rgba(255,255,255,.1)}
+.ic-git{background:rgba(240,81,51,.2);color:var(--git)}
+.ic-linux{background:rgba(245,197,24,.2);color:var(--linux)}
+.ic-docker{background:rgba(36,150,237,.2);color:var(--docker)}
+.ic-fav{background:rgba(246,201,14,.2);color:var(--fav)}
+.ic-notes{background:rgba(0,212,255,.15);color:var(--accent2)}
+.ic-rescue{background:rgba(255,77,77,.2);color:var(--rescue)}
+.ic-folder{background:rgba(168,85,247,.2);color:#c084fc}
+
+.nav-count{
+  margin-left:auto;background:rgba(255,255,255,.08);
+  color:var(--text3);font-size:10px;padding:1px 7px;
+  border-radius:10px;font-family:var(--mono);
+}
+.nav-btn.active .nav-count{background:rgba(0,122,204,.3);color:var(--accent2)}
+.rescue-pill{
+  margin-left:auto;background:rgba(255,77,77,.22);color:var(--rescue);
+  font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;
+}
+
+/* Folder nav items */
+.folder-nav-btn{
+  display:flex;align-items:center;gap:9px;
+  width:100%;padding:8px 10px;background:none;border:none;
+  color:rgba(255,255,255,.55);font-size:13px;
+  border-radius:7px;cursor:pointer;text-align:left;
+  transition:all var(--trans);position:relative;
+}
+.folder-nav-btn:hover{background:rgba(255,255,255,.07);color:#fff}
+.folder-nav-btn.active{background:rgba(168,85,247,.18);color:#c084fc}
+.folder-emoji{font-size:15px;width:26px;text-align:center;flex-shrink:0}
+.folder-actions{
+  margin-left:auto;display:flex;gap:2px;
+  opacity:0;transition:opacity var(--trans);
+}
+.folder-nav-btn:hover .folder-actions{opacity:1}
+.folder-action-btn{
+  background:none;border:none;color:var(--text3);font-size:11px;
+  padding:2px 5px;border-radius:4px;cursor:pointer;
+  transition:all var(--trans);
+}
+.folder-action-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+
+/* Sidebar footer */
+.sb-footer{
+  padding:10px 12px;border-top:1px solid rgba(255,255,255,.07);
+  flex-shrink:0;
+}
+.theme-btn{
+  display:flex;align-items:center;gap:8px;
+  width:100%;padding:8px 12px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);border-radius:7px;
+  color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;
+  transition:all var(--trans);
+}
+.theme-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+.main{
+  margin-left:var(--sidebar-w);
+  flex:1;display:flex;flex-direction:column;min-height:100vh;
+}
+
+/* TOPBAR */
+.topbar{
+  position:sticky;top:0;z-index:500;
+  background:var(--topbar-bg);backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  padding:10px 22px;display:flex;align-items:center;gap:10px;
+}
+.hamburger{
+  background:none;border:none;color:var(--text);
+  font-size:22px;cursor:pointer;padding:4px;
+  display:none;
+}
+.topbar-search{flex:1;position:relative;max-width:500px}
+.topbar-search i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px}
+.topbar-search input{
+  width:100%;background:var(--bg2);border:1px solid var(--card-border);
+  border-radius:8px;padding:8px 52px 8px 36px;
+  color:var(--text);font-size:13px;transition:border-color var(--trans);
+}
+.topbar-search input:focus{border-color:var(--accent)}
+.topbar-search input::placeholder{color:var(--text3)}
+.topbar-search kbd{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:var(--bg3);border:1px solid var(--card-border);
+  color:var(--text3);font-size:10px;padding:2px 6px;
+  border-radius:4px;font-family:var(--mono);
+}
+.topbar-right{display:flex;align-items:center;gap:7px;margin-left:auto}
+.status-badge{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.22);
+  color:var(--success);font-size:11px;padding:4px 10px;border-radius:20px;
+}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Icon btn */
+.icon-btn{
+  background:var(--bg2);border:1px solid var(--card-border);
+  color:var(--text2);width:34px;height:34px;border-radius:7px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;transition:all var(--trans);position:relative;
+}
+.icon-btn:hover{border-color:var(--accent);color:var(--text);background:var(--bg3)}
+.fav-icon-btn:hover{border-color:var(--fav);color:var(--fav)}
+.notes-icon-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.badge{
+  position:absolute;top:-5px;right:-5px;
+  background:var(--accent);color:#fff;
+  font-size:9px;font-weight:700;min-width:16px;height:16px;
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  padding:0 3px;border:2px solid var(--bg);
+}
+
+/* Avatar / Profile */
+.avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--accent);color:#fff;font-weight:700;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid rgba(255,255,255,.15);cursor:pointer;
+  transition:border-color var(--trans);font-family:var(--mono);
+  user-select:none;flex-shrink:0;
+}
+.avatar:hover{border-color:var(--accent2)}
+.avatar.lg{width:44px;height:44px;font-size:18px}
+.avatar.xl{width:58px;height:58px;font-size:23px}
+
+/* ── DROPDOWN POPOVER ── */
+.pop-wrap{position:relative}
+/* Invisible bridge fills the gap so mouse can travel from button → popover */
+.pop-wrap::after{
+  content:'';position:absolute;top:100%;left:-10px;right:-10px;
+  height:16px;z-index:799;display:none;
+}
+.pop-wrap:hover::after{display:block}
+.popover{
+  position:absolute;top:calc(100% + 12px);right:0;width:300px;
+  background:var(--bg2);border:1px solid var(--card-border);
+  border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.55);
+  z-index:800;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateY(-8px);
+  transition:opacity .2s ease,transform .2s ease,visibility .2s;
+}
+/* Show on hover (with bridge) OR when .show class is added by JS click */
+.pop-wrap:hover .popover,
+.popover.show{opacity:1;visibility:visible;pointer-events:all;transform:translateY(0)}
+.pop-head{
+  padding:12px 14px 10px;border-bottom:1px solid var(--card-border);
+  font-size:13px;font-weight:600;color:var(--text);
+  display:flex;align-items:center;
+}
+.pop-badge{
+  margin-left:auto;background:rgba(255,255,255,.08);color:var(--text3);
+  font-size:10px;padding:1px 7px;border-radius:10px;font-family:var(--mono);
+}
+.pop-body{max-height:250px;overflow-y:auto;padding:6px 0}
+.pop-empty{padding:20px;text-align:center;color:var(--text3);font-size:12px}
+.pop-item{
+  padding:8px 14px;cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,.03);
+  transition:background var(--trans);
+}
+.pop-item:hover{background:rgba(255,255,255,.04)}
+.pop-item-name{
+  font-size:12px;font-weight:500;color:var(--text);
+  display:flex;align-items:center;gap:6px;
+}
+.pop-item-cmd{
+  font-family:var(--mono);font-size:11px;color:var(--code-text);
+  margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pop-item-note{
+  font-size:11px;color:var(--text2);margin-top:3px;line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.pop-foot{padding:8px 14px;border-top:1px solid var(--card-border)}
+.pop-view-all{
+  background:none;border:none;color:var(--accent);
+  font-size:11px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:5px;padding:0;
+  transition:color var(--trans);
+}
+.pop-view-all:hover{color:var(--accent2)}
+
+/* Profile popover */
+.profile-pop{width:256px}
+.profile-pop-top{
+  display:flex;align-items:center;gap:12px;
+  padding:14px;border-bottom:1px solid var(--card-border);
+}
+.profile-name{font-size:14px;font-weight:600;color:var(--text)}
+.profile-handle{font-size:12px;color:var(--text3);font-family:var(--mono)}
+.profile-stats{display:flex}
+.pstat{
+  flex:1;text-align:center;padding:10px 4px;
+  border-right:1px solid var(--card-border);
+}
+.pstat:last-child{border-right:none}
+.pstat-num{display:block;font-family:var(--mono);font-size:16px;font-weight:700;color:var(--accent2)}
+.pstat-lbl{font-size:10px;color:var(--text3)}
+.profile-actions{padding:8px;display:flex;flex-direction:column;gap:3px}
+.paction-btn{
+  background:none;border:none;color:var(--text2);font-size:12px;
+  padding:8px 10px;border-radius:7px;cursor:pointer;
+  text-align:left;transition:all var(--trans);
+  display:flex;align-items:center;
+}
+.paction-btn:hover{background:rgba(255,255,255,.07);color:var(--text)}
+
+/* ============================================================
+   VIEW CONTAINER
+   ============================================================ */
+.view{padding:22px 24px;flex:1;display:none}
+.view.active{display:block}
+
+/* HERO */
+.hero{
+  background:linear-gradient(135deg,#0d1f33 0%,#0d1117 55%,#1a0d33 100%);
+  border:1px solid rgba(0,122,204,.22);border-radius:14px;
+  padding:22px 26px;margin-bottom:22px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-50px;right:-50px;
+  width:220px;height:220px;
+  background:radial-gradient(circle,rgba(0,122,204,.1) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-left{display:flex;align-items:center;gap:16px}
+.hero-icon{
+  width:50px;height:50px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:#fff;
+}
+.hero-title{font-family:var(--mono);font-size:21px;font-weight:700;color:#fff;margin:0}
+.ver-badge{
+  font-size:11px;font-weight:500;
+  background:rgba(0,122,204,.25);color:var(--accent2);
+  border:1px solid rgba(0,122,204,.4);
+  padding:2px 8px;border-radius:10px;vertical-align:middle;
+}
+.hero-sub{color:var(--text2);font-size:13px;margin-top:4px}
+.hero-stats{display:flex;gap:10px}
+.stat-card{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:12px 16px;text-align:center;min-width:68px;
+  transition:all var(--trans);
+}
+.stat-card.clickable{cursor:pointer}
+.stat-card.clickable:hover{border-color:var(--accent);background:rgba(0,122,204,.1)}
+.stat-num{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent2)}
+.stat-lbl{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* SECTION */
+.section{margin-bottom:24px}
+.section-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;font-size:13px;font-weight:600;color:var(--text);
+}
+.view-all-btn{
+  background:none;border:none;color:var(--accent);font-size:11px;
+  font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:4px;padding:0;
+  transition:color var(--trans);
+}
+.view-all-btn:hover{color:var(--accent2)}
+.sort-group{display:flex;gap:4px}
+.sort-btn{
+  background:none;border:1px solid var(--card-border);color:var(--text3);
+  font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;
+  transition:all var(--trans);
+}
+.sort-btn.active,.sort-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Pills */
+.pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.pill{
+  background:var(--bg2);border:1px solid var(--card-border);
+  color:var(--text2);font-size:12px;
+  padding:5px 13px;border-radius:20px;cursor:pointer;
+  transition:all var(--trans);display:flex;align-items:center;gap:5px;
+}
+.pill:hover{border-color:var(--accent);color:var(--accent)}
+.pill.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.pill[data-cat="git"].active{background:var(--git);border-color:var(--git)}
+.pill[data-cat="linux"].active{background:var(--linux);border-color:var(--linux);color:#000}
+.pill[data-cat="docker"].active{background:var(--docker);border-color:var(--docker)}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+  gap:13px;
+}
+
+/* CARD */
+.card{
+  background:var(--card);border:1px solid var(--card-border);
+  border-radius:var(--radius);padding:15px;
+  transition:transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, border-color 0.18s ease;
+  position:relative;animation:fadeUp .25s ease both;cursor:pointer;
+}
+.card:hover{
+  border-color:rgba(0,122,204,.5);
+  transform:translateY(-4px) scale(1.012);
+  box-shadow:0 12px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(0,122,204,.15);
+}
+.card:active{transform:translateY(-2px) scale(1.006)}
+.card.starred{border-color:rgba(246,201,14,.35)}
+.card.starred:hover{border-color:rgba(246,201,14,.6)}
+.card.noted{border-left:3px solid var(--accent2)}
+.card.custom{border-color:rgba(168,85,247,.28)}
+
+/* Glow line at top of card on hover */
+.card::before{
+  content:'';position:absolute;top:0;left:10%;right:10%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  border-radius:2px;opacity:0;transition:opacity 0.25s ease;
+}
+.card:hover::before{opacity:1}
+.card.starred::before{background:linear-gradient(90deg,transparent,var(--fav),transparent)}
+.card.noted::before{background:linear-gradient(90deg,transparent,var(--accent2),transparent)}
+
+/* Expand hint badge shown on hover */
+.card-expand-hint{
+  position:absolute;bottom:10px;right:12px;
+  font-size:10px;color:var(--text3);
+  display:flex;align-items:center;gap:3px;
+  opacity:0;transform:translateY(4px);
+  transition:opacity 0.2s ease, transform 0.2s ease;
+  pointer-events:none;
+}
+.card:hover .card-expand-hint{opacity:1;transform:translateY(0)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARD DETAIL MODAL ── */
+.card-detail-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.7);z-index:3000;
+  align-items:center;justify-content:center;padding:20px;
+  backdrop-filter:blur(6px);
+}
+.card-detail-overlay.show{display:flex}
+.card-detail-box{
+  background:var(--bg2);border:1px solid var(--card-border);
+  border-radius:16px;width:100%;max-width:680px;
+  max-height:90vh;overflow-y:auto;
+  animation:detailIn .25s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+}
+@keyframes detailIn{from{opacity:0;transform:scale(.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.card-detail-header{
+  padding:18px 20px 14px;
+  border-bottom:1px solid var(--card-border);
+  display:flex;align-items:flex-start;gap:10px;
+}
+.card-detail-close{
+  background:rgba(255,255,255,.06);border:1px solid var(--card-border);
+  color:var(--text3);font-size:16px;width:30px;height:30px;
+  border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all var(--trans);flex-shrink:0;margin-left:auto;
+}
+.card-detail-close:hover{background:rgba(255,77,77,.15);border-color:var(--rescue);color:var(--rescue)}
+.card-detail-body{padding:20px}
+.card-detail-cmd-block{
+  background:var(--code-bg);border:1px solid rgba(255,255,255,.07);
+  border-radius:10px;padding:14px 16px;margin:14px 0;position:relative;
+}
+.card-detail-cmd{
+  font-family:var(--mono);font-size:13px;color:var(--code-text);
+  word-break:break-all;line-height:1.7;
+}
+.card-detail-copy{
+  position:absolute;top:10px;right:10px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:var(--text3);font-size:11px;font-family:var(--mono);
+  padding:4px 10px;border-radius:6px;cursor:pointer;transition:all var(--trans);
+}
+.card-detail-copy:hover{background:rgba(0,122,204,.2);border-color:var(--accent);color:var(--accent)}
+.card-detail-copy.done{background:rgba(63,185,80,.15);border-color:var(--success);color:var(--success)}
+.card-detail-desc{font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:14px}
+.card-detail-note-section{margin-top:16px}
+.card-detail-note-label{
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--accent2);margin-bottom:8px;display:flex;align-items:center;gap:6px;
+}
+.card-detail-note-ta{
+  width:100%;background:var(--bg3);border:1px solid var(--card-border);
+  border-radius:9px;padding:12px 14px;color:var(--text);font-size:13px;
+  line-height:1.65;resize:vertical;min-height:100px;
+  transition:border-color var(--trans);
+}
+.card-detail-note-ta:focus{border-color:var(--accent2)}
+.card-detail-note-ta::placeholder{color:var(--text3)}
+.card-detail-actions{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;border-top:1px solid var(--card-border);
+  gap:10px;flex-wrap:wrap;
+}
+.card-detail-left{display:flex;align-items:center;gap:8px}
+
+.card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px}
+.chip{
+  font-size:10px;font-weight:600;padding:2px 8px;
+  border-radius:4px;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;
+}
+.chip-git{background:rgba(240,81,51,.15);color:#f07060;border:1px solid rgba(240,81,51,.3)}
+.chip-linux{background:rgba(245,197,24,.15);color:#e0b030;border:1px solid rgba(245,197,24,.3)}
+.chip-docker{background:rgba(36,150,237,.15);color:#5aabf0;border:1px solid rgba(36,150,237,.3)}
+.chip-custom{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.3)}
+.card-name{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.card-btns{display:flex;gap:3px;margin-left:auto;flex-shrink:0}
+.card-btn{
+  background:none;border:none;color:var(--text3);font-size:13px;
+  cursor:pointer;padding:3px 5px;border-radius:5px;transition:all var(--trans);
+}
+.card-btn:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.card-btn.active-star{color:var(--fav)}
+.card-btn.active-note{color:var(--accent2)}
+
+.code-wrap{
+  position:relative;background:var(--code-bg);
+  border:1px solid rgba(255,255,255,.06);border-radius:7px;
+  padding:9px 48px 9px 11px;margin:9px 0;
+}
+.cmd-code{
+  font-family:var(--mono);font-size:12px;color:var(--code-text);
+  display:block;word-break:break-all;
+}
+.cmd-var{
+  color:#f5c518;border-bottom:1px dashed #f5c518;
+  outline:none;min-width:50px;display:inline-block;
+  background:rgba(245,197,24,.08);border-radius:3px;padding:0 3px;cursor:text;
+}
+.copy-btn{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  color:var(--text3);font-size:11px;font-family:var(--mono);
+  padding:3px 8px;border-radius:5px;cursor:pointer;
+  transition:all var(--trans);white-space:nowrap;
+}
+.copy-btn:hover{background:rgba(0,122,204,.2);border-color:var(--accent);color:var(--accent)}
+.copy-btn.done{background:rgba(63,185,80,.15);border-color:var(--success);color:var(--success)}
+
+.card-desc{font-size:12px;color:var(--text2);line-height:1.65}
+.card-desc em{color:var(--success);font-style:normal;font-weight:500}
+
+.user-note-block{
+  margin-top:9px;padding:7px 10px;
+  background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.14);
+  border-radius:6px;font-size:11px;color:var(--accent2);
+  display:flex;align-items:flex-start;gap:6px;
+}
+.sys-note{
+  margin-top:9px;padding:7px 10px;
+  background:rgba(240,136,62,.08);border-left:3px solid var(--warning);
+  border-radius:0 6px 6px 0;font-size:11px;color:#d9a070;line-height:1.5;
+}
+.sys-note.danger{background:rgba(255,77,77,.08);border-left-color:var(--rescue);color:#f09090}
+.sys-note.tip{background:rgba(63,185,80,.08);border-left-color:var(--success);color:#7de09a}
+
+/* Empty state */
+.empty{
+  text-align:center;padding:60px 20px;color:var(--text3);
+  grid-column:1/-1;
+}
+.empty i{font-size:36px;margin-bottom:12px;opacity:.35;display:block}
+.empty p{font-size:13px}
+.empty-add-btn{
+  margin-top:14px;background:rgba(0,122,204,.15);
+  border:1px solid rgba(0,122,204,.3);color:var(--accent);
+  font-size:13px;padding:8px 18px;border-radius:8px;cursor:pointer;
+  transition:all var(--trans);display:inline-flex;align-items:center;gap:7px;
+}
+.empty-add-btn:hover{background:rgba(0,122,204,.25)}
+
+/* ── FAB ── */
+.fab{
+  position:fixed;bottom:26px;right:26px;
+  width:50px;height:50px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;color:#fff;font-size:22px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 24px rgba(0,122,204,.5);
+  transition:all var(--trans);z-index:400;
+}
+.fab:hover{transform:scale(1.1) rotate(90deg);box-shadow:0 8px 30px rgba(0,122,204,.7)}
+
+/* ============================================================
+   RESCUE MODE
+   ============================================================ */
+.rescue-head{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:22px;gap:16px;flex-wrap:wrap;
+}
+.rescue-title-wrap{display:flex;align-items:center;gap:14px}
+.rescue-big-icon{
+  width:50px;height:50px;border-radius:12px;flex-shrink:0;
+  background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--rescue);
+}
+.rescue-title{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--rescue);letter-spacing:1px}
+.rescue-sub{color:var(--text2);font-size:13px;margin-top:3px}
+.back-btn{
+  background:var(--bg2);border:1px solid var(--card-border);
+  color:var(--text2);font-size:13px;
+  padding:8px 16px;border-radius:8px;cursor:pointer;
+  transition:all var(--trans);display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.rescue-input-wrap{position:relative;margin-bottom:22px}
+.rescue-input-wrap i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--rescue);font-size:15px}
+.rescue-input-wrap input{
+  width:100%;background:var(--card);
+  border:2px solid rgba(255,77,77,.3);border-radius:10px;
+  padding:13px 16px 13px 44px;color:var(--text);
+  font-family:var(--mono);font-size:13px;
+  transition:border-color var(--trans);
+}
+.rescue-input-wrap input:focus{border-color:var(--rescue)}
+.rescue-input-wrap input::placeholder{color:var(--text3);font-family:var(--font)}
+.rescue-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:13px;margin-bottom:24px;
+}
+.r-card{
+  background:var(--card);border:1px solid rgba(255,77,77,.2);
+  border-radius:10px;padding:15px;animation:fadeUp .2s ease both;
+}
+.r-card-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.r-err-icon{
+  width:28px;height:28px;background:rgba(255,77,77,.15);
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--rescue);flex-shrink:0;
+}
+.r-err-title{font-size:13px;font-weight:600;color:var(--rescue)}
+.r-err-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.r-fix-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--success);margin-bottom:5px}
+.r-fix-box{
+  position:relative;background:var(--code-bg);
+  border:1px solid rgba(63,185,80,.2);border-radius:7px;
+  padding:9px 48px 9px 11px;
+}
+.r-fix-box code{font-family:var(--mono);font-size:12px;color:#3fb950;display:block;word-break:break-all}
+.r-tag{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(63,185,80,.1);color:var(--success);border:1px solid rgba(63,185,80,.2)}
+.rescue-chips{display:flex;flex-wrap:wrap;gap:7px}
+.rescue-chip{
+  background:var(--bg2);border:1px solid var(--card-border);
+  color:var(--text2);font-size:12px;padding:6px 13px;
+  border-radius:20px;cursor:pointer;transition:all var(--trans);font-family:var(--mono);
+}
+.rescue-chip:hover{border-color:var(--rescue);color:var(--rescue)}
+
+/* ============================================================
+   NOTES VIEW
+   ============================================================ */
+.notes-head-icon{
+  background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.25);
+  color:var(--accent2);
+}
+
+/* ============================================================
+   MODALS (Custom, no Bootstrap dependency)
+   ============================================================ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.65);z-index:2000;
+  backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.show{display:flex}
+.modal-box{
+  background:var(--bg2);border:1px solid var(--card-border);
+  border-radius:14px;width:100%;max-width:480px;
+  max-height:90vh;overflow-y:auto;
+  animation:scaleIn .2s ease;
+}
+.modal-box.wide{max-width:600px}
+@keyframes scaleIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:15px 18px;border-bottom:1px solid var(--card-border);
+}
+.modal-title{font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.modal-close{
+  background:none;border:none;color:var(--text3);font-size:18px;
+  cursor:pointer;padding:2px;border-radius:5px;transition:color var(--trans);
+}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:18px}
+.modal-foot{
+  display:flex;align-items:center;
+  padding:12px 18px;border-top:1px solid var(--card-border);gap:8px;
+}
+.btn{
+  padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;
+  border:none;transition:all var(--trans);display:flex;align-items:center;gap:6px;
+}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#0090ee}
+.btn-ghost{background:var(--bg3);border:1px solid var(--card-border);color:var(--text2)}
+.btn-ghost:hover{background:var(--card-border);color:var(--text)}
+.btn-danger{background:rgba(255,77,77,.15);border:1px solid rgba(255,77,77,.3);color:var(--rescue)}
+.btn-danger:hover{background:rgba(255,77,77,.25)}
+.ml-auto{margin-left:auto}
+
+/* Form fields */
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.label{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;
+}
+.label-hint{font-size:10px;color:var(--text3);background:rgba(255,255,255,.06);padding:1px 7px;border-radius:4px;font-weight:400}
+.inp,select.inp,textarea.inp{
+  width:100%;background:var(--bg3);
+  border:1px solid var(--card-border);border-radius:8px;
+  padding:9px 12px;color:var(--text);font-size:13px;
+  transition:border-color var(--trans);resize:vertical;
+}
+.inp:focus{border-color:var(--accent)}
+.inp::placeholder{color:var(--text3)}
+.inp.mono{font-family:var(--mono)}
+select.inp option{background:var(--bg2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.error-box{
+  background:rgba(255,77,77,.1);border:1px solid rgba(255,77,77,.3);
+  color:#f09090;font-size:12px;padding:8px 12px;border-radius:7px;margin-top:10px;
+}
+/* note cmd label */
+.note-cmd-ref{
+  font-family:var(--mono);font-size:12px;color:var(--accent2);
+  background:var(--code-bg);border:1px solid var(--card-border);
+  border-radius:6px;padding:8px 12px;margin-bottom:10px;
+}
+/* emoji picker */
+.emoji-grid{
+  display:flex;flex-wrap:wrap;gap:5px;
+  background:var(--bg3);border:1px solid var(--card-border);
+  border-radius:8px;padding:10px;
+}
+.emoji-grid span{
+  font-size:18px;cursor:pointer;padding:3px 5px;
+  border-radius:6px;transition:background var(--trans);
+}
+.emoji-grid span:hover{background:rgba(255,255,255,.12)}
+/* avatar color picker */
+.color-grid{display:flex;gap:8px;flex-wrap:wrap}
+.av-color{
+  width:24px;height:24px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:all var(--trans);
+}
+.av-color:hover,.av-color.active{border-color:#fff;transform:scale(1.15)}
+.profile-edit-top{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+
+/* ============================================================
+   LIGHT MODE
+   ============================================================ */
+[data-theme="light"] .topbar{border-bottom:1px solid #d0d7de}
+[data-theme="light"] .topbar-search input{background:#fff;color:#24292f}
+[data-theme="light"] .code-wrap,.r-fix-box{background:var(--code-bg)}
+[data-theme="light"] .card-desc{color:var(--text2)}
+[data-theme="light"] .hero{background:linear-gradient(135deg,#e6f0fa,#f0f2f5 55%,#ede6fa)}
+[data-theme="light"] .hero-title{color:#24292f}
+[data-theme="light"] .inp,
+[data-theme="light"] textarea.inp,
+[data-theme="light"] select.inp{background:#fff}
+[data-theme="light"] select.inp option{background:#fff}
+[data-theme="light"] .sb-search input{color:rgba(255,255,255,.9)}
+[data-theme="light"] .popover{box-shadow:0 8px 30px rgba(0,0,0,.15)}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+/* Global overflow guard */
+html,body{max-width:100%;overflow-x:hidden}
+.main{min-width:0;overflow-x:hidden}
+.view{min-width:0;overflow-x:hidden}
+.topbar{min-width:0}
+.topbar-search{min-width:0;max-width:100%}
+.topbar-right{flex-shrink:0}
+.hero{min-width:0}
+.hero-title{word-break:break-word}
+.grid{min-width:0}
+.card{min-width:0;overflow:hidden}
+.code-wrap{min-width:0;overflow:hidden}
+.cmd-code{overflow-wrap:break-word;word-break:break-all}
+.pills{min-width:0}
+
+@media (max-width:991px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0);box-shadow:4px 0 30px rgba(0,0,0,.5)}
+  .main{margin-left:0!important}
+  .hamburger{display:flex;align-items:center}
+  .topbar-search{max-width:none}
+  .status-badge{display:none!important}
+  .popover{position:fixed;top:auto;bottom:0;right:0;left:0;
+    width:100%;max-width:100%;border-radius:16px 16px 0 0;
+    max-height:70vh;overflow-y:auto;
+  }
+  .pop-wrap:hover .popover{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-8px)}
+  .popover.show{opacity:1!important;visibility:visible!important;pointer-events:all!important;transform:translateY(0)!important}
+  .profile-pop{position:fixed;top:auto;bottom:0;right:0;left:0;
+    width:100%!important;border-radius:16px 16px 0 0;
+  }
+}
+@media (max-width:767px){
+  .hero{padding:16px;flex-direction:column;gap:12px}
+  .hero-title{font-size:17px}
+  .hero-stats{width:100%;justify-content:space-between}
+  .stat-card{flex:1;min-width:0;padding:10px 8px}
+  .stat-num{font-size:18px}
+  .hero-left{flex-wrap:wrap}
+  .grid{grid-template-columns:1fr;gap:10px}
+  .rescue-grid{grid-template-columns:1fr}
+  .topbar{padding:9px 12px;gap:7px}
+  .topbar-search input{font-size:12px}
+  .fab{bottom:18px;right:14px;width:44px;height:44px;font-size:18px}
+  .form-row{grid-template-columns:1fr}
+  .rescue-head{flex-direction:column;gap:12px}
+  .pills{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;
+    -webkit-overflow-scrolling:touch;}
+  .pills::-webkit-scrollbar{height:3px}
+  .pill{white-space:nowrap;flex-shrink:0}
+  .section-head{flex-wrap:wrap;gap:8px}
+  .sort-group{flex-shrink:0}
+  .card-detail-box{max-height:95vh;border-radius:16px 16px 0 0;margin-top:auto}
+  .card-detail-overlay{align-items:flex-end;padding:0}
+}
+@media (max-width:400px){
+  .view{padding:10px}
+  .topbar{padding:8px 10px;gap:5px}
+  .topbar-search input{padding:7px 8px 7px 32px;font-size:11px}
+  .hero{padding:12px}
+  .hero-title{font-size:15px}
+  .stat-num{font-size:16px}
+  .card{padding:12px}
+  .card-name{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="overlay"></div>
+
+<!-- ════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <div class="brand">
+      <div class="brand-icon"><i class="bi bi-terminal-fill"></i></div>
+      <div>
+        <div class="brand-name">Dev-Command</div>
+        <div class="brand-sub">Navigator v2.4</div>
+      </div>
+    </div>
+    <button class="sb-close" id="sbClose"><i class="bi bi-x-lg"></i></button>
+  </div>
+
+  <div class="sb-search">
+    <i class="bi bi-search"></i>
+    <input type="text" id="sbSearch" placeholder="Search commands..." autocomplete="off">
+  </div>
+
+  <nav class="sb-nav" id="sbNav">
+    <div class="nav-section-label">Categories</div>
+    <button class="nav-btn active" data-cat="all">
+      <span class="nav-icon ic-all"><i class="bi bi-grid-fill"></i></span>
+      <span>All Commands</span>
+      <span class="nav-count" id="cnt-all">0</span>
+    </button>
+    <button class="nav-btn" data-cat="git">
+      <span class="nav-icon ic-git"><i class="bi bi-git"></i></span>
+      <span>Git</span>
+      <span class="nav-count" id="cnt-git">0</span>
+    </button>
+    <button class="nav-btn" data-cat="linux">
+      <span class="nav-icon ic-linux"><i class="bi bi-terminal"></i></span>
+      <span>Linux</span>
+      <span class="nav-count" id="cnt-linux">0</span>
+    </button>
+    <button class="nav-btn" data-cat="docker">
+      <span class="nav-icon ic-docker"><i class="bi bi-box-seam-fill"></i></span>
+      <span>Docker</span>
+      <span class="nav-count" id="cnt-docker">0</span>
+    </button>
+
+    <div class="nav-section-label" style="margin-top:6px">
+      <span>My Folders</span>
+      <button class="nav-section-label-btn" id="addFolderBtn" title="New folder"><i class="bi bi-plus-lg"></i></button>
+    </div>
+    <div id="foldersList"><div style="padding:3px 8px 6px;font-size:11px;color:var(--text3);font-style:italic">No folders yet.</div></div>
+
+    <div class="nav-section-label" style="margin-top:6px">Tools</div>
+    <button class="nav-btn" data-cat="favorites" id="favNavBtn">
+      <span class="nav-icon ic-fav"><i class="bi bi-star-fill"></i></span>
+      <span>Favorites</span>
+      <span class="nav-count" id="cnt-fav">0</span>
+    </button>
+    <button class="nav-btn" id="notesNavBtn">
+      <span class="nav-icon ic-notes"><i class="bi bi-journal-text"></i></span>
+      <span>My Notes</span>
+      <span class="nav-count" id="cnt-notes">0</span>
+    </button>
+    <button class="nav-btn" id="rescueNavBtn">
+      <span class="nav-icon ic-rescue"><i class="bi bi-shield-exclamation"></i></span>
+      <span>Rescue Mode</span>
+      <span class="rescue-pill">!</span>
+    </button>
+  </nav>
+
+  <div class="sb-footer">
+    <button class="theme-btn" id="themeBtn">
+      <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+      <span id="themeLabel">Light Mode</span>
+    </button>
+  </div>
+</aside>
+
+<!-- ════════════════════════════════════
+     MAIN
+════════════════════════════════════ -->
+<div class="app-shell">
+<main class="main" id="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="hamburger" id="hamburger"><i class="bi bi-list"></i></button>
+    <div class="topbar-search">
+      <i class="bi bi-search"></i>
+      <input type="text" id="topSearch" placeholder="Search commands... (Ctrl+K)" autocomplete="off">
+      <kbd>Ctrl+K</kbd>
+    </div>
+    <div class="topbar-right">
+      <div class="status-badge"><span class="status-dot"></span><span id="totalLbl">42</span>&nbsp;indexed</div>
+
+      <!-- Favorites popover -->
+      <div class="pop-wrap" id="favPopWrap">
+        <button class="icon-btn fav-icon-btn" title="Favorites">
+          <i class="bi bi-star-fill"></i>
+          <span class="badge" id="favBadge" style="display:none">0</span>
+        </button>
+        <div class="popover" id="favPop">
+          <div class="pop-head"><i class="bi bi-star-fill me-2" style="color:var(--fav)"></i>Favorites<span class="pop-badge" id="favPopCnt">0</span></div>
+          <div class="pop-body" id="favPopBody"><div class="pop-empty">No favorites yet. Star a command!</div></div>
+          <div class="pop-foot"><button class="pop-view-all" data-goto="favorites">View All <i class="bi bi-arrow-right"></i></button></div>
+        </div>
+      </div>
+
+      <!-- Notes popover -->
+      <div class="pop-wrap" id="notesPopWrap">
+        <button class="icon-btn notes-icon-btn" title="My Notes">
+          <i class="bi bi-journal-text"></i>
+          <span class="badge" id="notesBadge" style="display:none">0</span>
+        </button>
+        <div class="popover" id="notesPop">
+          <div class="pop-head"><i class="bi bi-journal-text me-2" style="color:var(--accent2)"></i>My Notes<span class="pop-badge" id="notesPopCnt">0</span></div>
+          <div class="pop-body" id="notesPopBody"><div class="pop-empty">No notes yet. Add one from a card!</div></div>
+          <div class="pop-foot"><button class="pop-view-all" data-goto="notes">View All Notes <i class="bi bi-arrow-right"></i></button></div>
+        </div>
+      </div>
+
+      <!-- Profile -->
+      <div class="pop-wrap" id="profilePopWrap">
+        <div class="avatar" id="avatarBtn" title="Profile">D</div>
+        <div class="popover profile-pop" id="profilePop">
+          <div class="profile-pop-top">
+            <div class="avatar lg" id="avatarLg">D</div>
+            <div>
+              <div class="profile-name" id="profName">Developer</div>
+              <div class="profile-handle" id="profHandle">@dev</div>
+            </div>
+          </div>
+          <div class="profile-stats">
+            <div class="pstat"><span class="pstat-num" id="pp-fav">0</span><div class="pstat-lbl">Favorites</div></div>
+            <div class="pstat"><span class="pstat-num" id="pp-notes">0</span><div class="pstat-lbl">Notes</div></div>
+            <div class="pstat"><span class="pstat-num" id="pp-folders">0</span><div class="pstat-lbl">Folders</div></div>
+          </div>
+          <div class="profile-actions">
+            <button class="paction-btn" id="editProfileBtn"><i class="bi bi-pencil" style="margin-right:8px"></i>Edit Profile</button>
+            <button class="paction-btn" id="themeBtn2"><i class="bi bi-moon-stars-fill" style="margin-right:8px" id="themeIcon2"></i><span id="themeLabel2">Light Mode</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── DASHBOARD VIEW ── -->
+  <div class="view active" id="dashView">
+    <div class="hero">
+      <div class="hero-left">
+        <div class="hero-icon"><i class="bi bi-terminal-fill"></i></div>
+        <div>
+          <h1 class="hero-title">Command Center <span class="ver-badge">v2.4</span></h1>
+          <p class="hero-sub">Your personal CLI reference hub — Git, Linux, Docker &amp; custom folders.</p>
+        </div>
+      </div>
+      <div class="hero-stats" id="heroStats">
+        <div class="stat-card clickable" id="statFav">
+          <div class="stat-num" id="favCount">0</div>
+          <div class="stat-lbl"><i class="bi bi-star-fill"></i> Favorites</div>
+        </div>
+        <div class="stat-card clickable" id="statNotes">
+          <div class="stat-num" id="noteCount">0</div>
+          <div class="stat-lbl"><i class="bi bi-journal-text"></i> Notes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="totalCount">42</div>
+          <div class="stat-lbl"><i class="bi bi-grid"></i> Commands</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fav preview -->
+    <div id="favPreviewSection" style="display:none">
+      <div class="section">
+        <div class="section-head">
+          <span><i class="bi bi-star-fill" style="color:var(--fav);margin-right:6px"></i>Bookmarked Commands</span>
+          <button class="view-all-btn" data-goto="favorites">VIEW ALL <i class="bi bi-arrow-right"></i></button>
+        </div>
+        <div class="grid" id="favPreviewGrid"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <span id="sectionTitle">All Commands</span>
+        <div class="sort-group">
+          <button class="sort-btn active" data-sort="recent">Recent</button>
+          <button class="sort-btn" data-sort="az">A–Z</button>
+        </div>
+      </div>
+      <div class="pills" id="pillsRow">
+        <button class="pill active" data-cat="all">All</button>
+        <button class="pill" data-cat="git"><i class="bi bi-git"></i> Git</button>
+        <button class="pill" data-cat="linux"><i class="bi bi-terminal"></i> Linux</button>
+        <button class="pill" data-cat="docker"><i class="bi bi-box-seam-fill"></i> Docker</button>
+      </div>
+      <div class="grid" id="mainGrid"></div>
+      <div class="empty" id="emptyState" style="display:none">
+        <i class="bi bi-search"></i>
+        <p>No commands found.</p>
+        <button class="empty-add-btn" id="emptyAddBtn"><i class="bi bi-plus-circle"></i> Add a command</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESCUE VIEW ── -->
+  <div class="view" id="rescueView">
+    <div class="rescue-head">
+      <div class="rescue-title-wrap">
+        <div class="rescue-big-icon"><i class="bi bi-shield-exclamation"></i></div>
+        <div>
+          <div class="rescue-title">RESCUE MODE</div>
+          <div class="rescue-sub">Paste your terminal error for instant solutions.</div>
+        </div>
+      </div>
+      <button class="back-btn" id="backRescue"><i class="bi bi-arrow-left"></i> Back</button>
+    </div>
+    <div class="rescue-input-wrap">
+      <i class="bi bi-bug-fill"></i>
+      <input type="text" id="rescueInput" placeholder="e.g., Permission denied, port already in use, merge conflict..." autocomplete="off">
+    </div>
+    <div class="rescue-grid" id="rescueGrid"></div>
+    <div class="section">
+      <div class="section-head"><span><i class="bi bi-clock-history" style="margin-right:6px"></i>Common Errors</span></div>
+      <div class="rescue-chips" id="rescueChips"></div>
+    </div>
+  </div>
+
+  <!-- ── NOTES VIEW ── -->
+  <div class="view" id="notesView">
+    <div class="rescue-head">
+      <div class="rescue-title-wrap">
+        <div class="rescue-big-icon notes-head-icon"><i class="bi bi-journal-text"></i></div>
+        <div>
+          <div class="rescue-title" style="color:var(--accent2)">MY NOTES</div>
+          <div class="rescue-sub">All your personal command annotations.</div>
+        </div>
+      </div>
+      <button class="back-btn" id="backNotes"><i class="bi bi-arrow-left"></i> Back</button>
+    </div>
+    <div class="grid" id="notesGrid"></div>
+    <div class="empty" id="notesEmpty" style="display:none">
+      <i class="bi bi-journal-x"></i>
+      <p>No notes yet. Click <i class="bi bi-pencil-square"></i> on any command card to add a note.</p>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" title="Add new command"><i class="bi bi-plus-lg"></i></button>
+
+<!-- ════════════════════════════════════
+     MODALS
+════════════════════════════════════ -->
+
+<!-- Note Modal -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title"><i class="bi bi-pencil-square"></i> Personal Note</div>
+      <button class="modal-close" data-close="noteModal">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="note-cmd-ref" id="noteCmdRef"></div>
+      <textarea class="inp" id="noteTA" rows="4" placeholder="e.g., Divyanshu said: use this only on staging..."></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="delNoteBtn" style="display:none"><i class="bi bi-trash"></i> Delete</button>
+      <div class="ml-auto" style="display:flex;gap:8px">
+        <button class="btn btn-ghost" data-close="noteModal">Cancel</button>
+        <button class="btn btn-primary" id="saveNoteBtn"><i class="bi bi-floppy"></i> Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Command Modal -->
+<div class="modal-overlay" id="cmdModal">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <div class="modal-title" id="cmdModalTitle"><i class="bi bi-plus-circle"></i> Add New Command</div>
+      <button class="modal-close" data-close="cmdModal">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field">
+          <div class="label">Command Name *</div>
+          <input type="text" class="inp" id="cName" placeholder="e.g., Create new branch">
+        </div>
+        <div class="field">
+          <div class="label">Folder / Category *</div>
+          <select class="inp" id="cCat">
+            <option value="">-- Select --</option>
+            <option value="git">Git</option>
+            <option value="linux">Linux</option>
+            <option value="docker">Docker</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <div class="label">Command <span class="label-hint">Use &lt;placeholder&gt; for variables</span></div>
+        <input type="text" class="inp mono" id="cCmd" placeholder="e.g., git checkout -b <branch-name>">
+      </div>
+      <div class="field">
+        <div class="label">Description *</div>
+        <textarea class="inp" id="cDesc" rows="3" placeholder="Explain what this command does in plain English..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <div class="label">Note Type</div>
+          <select class="inp" id="cNoteType">
+            <option value="">None</option>
+            <option value="tip">✓ Tip</option>
+            <option value="warning">⚠️ Warning</option>
+            <option value="danger">🚨 Danger</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="label">Note Text</div>
+          <input type="text" class="inp" id="cNoteText" placeholder="e.g., Only on staging server">
+        </div>
+      </div>
+      <div class="error-box" id="cmdError" style="display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="delCmdBtn" style="display:none"><i class="bi bi-trash"></i> Delete</button>
+      <div class="ml-auto" style="display:flex;gap:8px">
+        <button class="btn btn-ghost" data-close="cmdModal">Cancel</button>
+        <button class="btn btn-primary" id="saveCmdBtn"><i class="bi bi-floppy"></i> <span id="saveCmdLbl">Add Command</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Folder Modal -->
+<div class="modal-overlay" id="folderModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="folderModalTitle"><i class="bi bi-folder-plus"></i> New Folder</div>
+      <button class="modal-close" data-close="folderModal">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="label">Folder Name *</div>
+        <input type="text" class="inp" id="fName" placeholder="e.g., PostgreSQL, HTML/CSS, Python">
+      </div>
+      <div class="field">
+        <div class="label">Choose Emoji Icon</div>
+        <div class="emoji-grid" id="emojiGrid">🐘 🐍 🌐 ⚡ 🔥 🎯 📦 🛠️ 🗄️ ☁️ 🔑 📝 🧪 🚀 💡 🔌 🎨 📊 🏗️ 🔒</div>
+        <input type="text" class="inp" id="fEmoji" style="margin-top:8px" placeholder="Or type emoji" maxlength="2" value="📁">
+      </div>
+      <div class="error-box" id="folderError" style="display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="delFolderBtn" style="display:none"><i class="bi bi-trash"></i> Delete</button>
+      <div class="ml-auto" style="display:flex;gap:8px">
+        <button class="btn btn-ghost" data-close="folderModal">Cancel</button>
+        <button class="btn btn-primary" id="saveFolderBtn"><i class="bi bi-folder-check"></i> <span id="saveFolderLbl">Create Folder</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title"><i class="bi bi-person-circle"></i> Edit Profile</div>
+      <button class="modal-close" data-close="profileModal">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="profile-edit-top">
+        <div class="avatar xl" id="editAvatar">D</div>
+        <div>
+          <div class="label" style="margin-bottom:8px">Avatar Color</div>
+          <div class="color-grid" id="colorGrid">
+            <span class="av-color" data-c="#007acc" style="background:#007acc"></span>
+            <span class="av-color" data-c="#f05133" style="background:#f05133"></span>
+            <span class="av-color" data-c="#3fb950" style="background:#3fb950"></span>
+            <span class="av-color" data-c="#f5c518" style="background:#f5c518"></span>
+            <span class="av-color" data-c="#a855f7" style="background:#a855f7"></span>
+            <span class="av-color" data-c="#ec4899" style="background:#ec4899"></span>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <div class="label">Display Name</div>
+        <input type="text" class="inp" id="pName" placeholder="e.g., Arjun Dev" maxlength="24">
+      </div>
+      <div class="field">
+        <div class="label">Handle</div>
+        <input type="text" class="inp" id="pHandle" placeholder="arjun_dev" maxlength="20">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="ml-auto" style="display:flex;gap:8px">
+        <button class="btn btn-ghost" data-close="profileModal">Cancel</button>
+        <button class="btn btn-primary" id="saveProfileBtn"><i class="bi bi-floppy"></i> Save Profile</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     CARD DETAIL MODAL
+════════════════════════════ -->
+<div class="card-detail-overlay" id="cardDetailOverlay">
+  <div class="card-detail-box" id="cardDetailBox">
+    <div class="card-detail-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="chip" id="detailChip">git</span>
+          <span style="font-size:15px;font-weight:600;color:var(--text)" id="detailName"></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;gap:5px" id="detailStarBtn">
+            <i class="bi bi-star" id="detailStarIcon"></i> <span id="detailStarLabel">Favorite</span>
+          </button>
+        </div>
+      </div>
+      <button class="card-detail-close" id="cardDetailClose"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="card-detail-body">
+      <div class="card-detail-cmd-block">
+        <div class="card-detail-cmd" id="detailCmd"></div>
+        <button class="card-detail-copy" id="detailCopyBtn">copy</button>
+      </div>
+      <p class="card-detail-desc" id="detailDesc"></p>
+      <div id="detailSysNote"></div>
+      <div class="card-detail-note-section">
+        <div class="card-detail-note-label">
+          <i class="bi bi-pencil-square"></i> Your Personal Note
+          <span style="font-size:10px;color:var(--text3);font-weight:400;margin-left:4px">— saved automatically</span>
+        </div>
+        <textarea class="card-detail-note-ta" id="detailNoteTA" rows="5" placeholder="Add your personal notes here... e.g., 'Divyanshu said: use this only on staging server. Remember to set the env var first.'"></textarea>
+      </div>
+    </div>
+    <div class="card-detail-actions">
+      <div class="card-detail-left">
+        <button class="btn btn-danger" id="detailDelNoteBtn" style="display:none;font-size:11px;padding:5px 12px">
+          <i class="bi bi-trash"></i> Delete Note
+        </button>
+      </div>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn btn-ghost" id="cardDetailCancel">Close</button>
+        <button class="btn btn-primary" id="detailSaveNoteBtn"><i class="bi bi-floppy"></i> Save Note</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     DATA
+════════════════════════════════════ -->
+<script>
+// ============================================================
+//  DATA — COMMANDS & ERRORS (embedded, no external file needed)
+// ============================================================
+const COMMANDS = [
+  {id:"g01",cat:"git",name:"Undo Last Commit",cmd:"git reset --soft HEAD~1",desc:"Reverts the most recent commit while keeping all your changes staged and ready. Perfect for fixing typos or restructuring commits before pushing to the remote.",note:{type:"warning",text:"⚠️ Does not touch your files — changes stay staged. Safe to use before push."}},
+  {id:"g02",cat:"git",name:"Stash Changes (Pop)",cmd:"git stash pop",desc:"Brings your temporarily saved work back AND <em>deletes</em> the saved copy. Like grabbing a sticky note from the drawer and throwing the drawer away.",note:{type:"danger",text:"⚠️ pop = restore + delete the stash. If something goes wrong, the stash is gone."}},
+  {id:"g03",cat:"git",name:"Stash Changes (Apply)",cmd:"git stash apply",desc:"Brings back your temporarily saved work and <em>keeps</em> the saved copy too. Like photocopying a sticky note before putting it back.",note:{type:"tip",text:"✓ apply = restore + keep the stash. Safer than pop — reuse it later."}},
+  {id:"g04",cat:"git",name:"New Branch",cmd:"git branch <branch-name>",cmdHasVar:true,desc:"Creates a new local branch at the current HEAD pointer. You still need to switch to it with checkout."},
+  {id:"g05",cat:"git",name:"Checkout New Branch",cmd:"git checkout -b <branch-name>",cmdHasVar:true,desc:"Creates a new branch and immediately switches to it. One command instead of two.",note:{type:"tip",text:"✓ Shorthand for: git branch + git checkout combined."}},
+  {id:"g06",cat:"git",name:"Delete Remote Branch",cmd:"git push origin --delete <branch-name>",cmdHasVar:true,desc:"Permanently removes a branch from the remote origin server. Your local branch still exists until you delete it separately.",note:{type:"danger",text:"⚠️ This deletes the branch for EVERYONE on the team. Communicate first."}},
+  {id:"g07",cat:"git",name:"Log Graph",cmd:"git log --oneline --graph",desc:"Displays the current history with a text-based ASCII graph of branches and merges. Great for visualizing the commit tree."},
+  {id:"g08",cat:"git",name:"Force Push",cmd:"git push --force",desc:"Overwrites the remote history with your local state. Used after a rebase but extremely risky on shared branches.",note:{type:"danger",text:"⚠️ NEVER use on main/master. Destroys teammates' history."}},
+  {id:"g09",cat:"git",name:"Amend Commit",cmd:"git commit --amend",desc:"Adds new changes to the previous commit or edits its message. Rewrites the last commit instead of creating a new one.",note:{type:"warning",text:"⚠️ Don't amend already-pushed commits. Creates diverged history."}},
+  {id:"g10",cat:"git",name:"Cherry Pick",cmd:"git cherry-pick <commit-hash>",cmdHasVar:true,desc:"Applies the changes introduced by some existing commit from any branch onto your current branch."},
+  {id:"g11",cat:"git",name:"Fetch All",cmd:"git fetch --all",desc:"Downloads all objects and references from every remote without merging anything into your local branches.",note:{type:"tip",text:"✓ Safe — never modifies your local work. Always fetch before a rebase."}},
+  {id:"g12",cat:"git",name:"Rebase on Main",cmd:"git rebase main",desc:"Replays your commits on top of the latest main branch. Makes history look linear — like you started work today.",note:{type:"danger",text:"⚠️ NEVER rebase public/shared branches. Only on your own local branches."}},
+  {id:"g13",cat:"git",name:"Stage All Changes",cmd:"git add .",desc:"Adds all modified and new files in the current directory to the staging area for the next commit.",note:{type:"warning",text:"⚠️ Stages everything including accidental changes. Review with git diff first."}},
+  {id:"g14",cat:"git",name:"Hard Reset",cmd:"git reset --hard HEAD~1",desc:"Completely wipes the last commit AND all its file changes. Like shredding a letter — gone forever.",note:{type:"danger",text:"⚠️ DANGER: file changes are permanently lost. Run git reflog first as backup."}},
+  {id:"l01",cat:"linux",name:"Make File Executable",cmd:"chmod +x <filename>.sh",cmdHasVar:true,desc:"Gives a file 'execute' permission — makes a script actually <em>runnable</em>. Without this, Linux refuses to run it."},
+  {id:"l02",cat:"linux",name:"Recursive Search",cmd:"grep -r '<search_text>' /path/",cmdHasVar:true,desc:"Searches inside all files in a folder and its subfolders for a specific word or phrase. Like Ctrl+F for your entire filesystem.",note:{type:"tip",text:"✓ grep = search file CONTENTS. Use 'find' to search by filename instead."}},
+  {id:"l03",cat:"linux",name:"Find Files by Name",cmd:'find . -name "*.log"',desc:"Hunts for files matching a pattern starting from current directory. Searches filenames, not file contents.",note:{type:"warning",text:"⚠️ find searches filenames. grep searches file contents. Common confusion!"}},
+  {id:"l04",cat:"linux",name:"Find Process by Name",cmd:"ps aux | grep <process>",cmdHasVar:true,desc:"Lists all running processes and filters them by the specified string using the pipe utility."},
+  {id:"l05",cat:"linux",name:"Kill Process Forcefully",cmd:"kill -9 <PID>",cmdHasVar:true,desc:"Force-terminates a process by its ID immediately, no questions asked. The '-9' means no mercy — the OS sends SIGKILL.",note:{type:"danger",text:"⚠️ Always try 'kill PID' first. -9 skips cleanup and may corrupt data."}},
+  {id:"l06",cat:"linux",name:"Watch Live Logs",cmd:"tail -f /var/log/app.log",desc:"Watches a log file in real-time as new lines appear. The '-f' flag means 'follow'. Essential for debugging a live server."},
+  {id:"l07",cat:"linux",name:"Check Disk Space",cmd:"df -h",desc:"Shows how much disk space is used and available on all mounted drives. The '-h' means human-readable (GB instead of raw bytes)."},
+  {id:"l08",cat:"linux",name:"POST Request via cURL",cmd:"curl -X POST -H 'Content-Type: application/json' -d '{\"key\":\"val\"}' https://api.example.com",desc:"Sends an HTTP POST request directly from the terminal. Invaluable for testing APIs without Postman or a browser."},
+  {id:"l09",cat:"linux",name:"Create Symbolic Link",cmd:"ln -s /original/path /link/path",desc:"Creates a symbolic link — a shortcut that points to another file or folder. Editing through the link edits the original."},
+  {id:"l10",cat:"linux",name:"Find Port in Use",cmd:"lsof -i :<port>",cmdHasVar:true,desc:"Shows which process is occupying a specific port. Run this when you get 'port already in use' errors.",note:{type:"tip",text:"✓ Follow up with 'kill -9 PID' to free the port."}},
+  {id:"l11",cat:"linux",name:"Monitor CPU & Memory",cmd:"htop",desc:"An interactive, color-coded process monitor showing CPU, memory, and swap usage in real time. Press 'q' to exit."},
+  {id:"l12",cat:"linux",name:"Clean Working Directory",cmd:"git clean -fd",desc:"Removes all untracked files and directories from the current working tree. Leaves tracked files alone.",note:{type:"danger",text:"⚠️ Permanent. Untracked files are deleted — not sent to trash."}},
+  {id:"l13",cat:"linux",name:"Check Memory Usage",cmd:"free -h",desc:"Displays total, used, and free memory in human-readable format. Quick way to check if your server is running low on RAM."},
+  {id:"l14",cat:"linux",name:"SSH Into Server",cmd:"ssh <user>@<host>",cmdHasVar:true,desc:"Opens a secure shell session to a remote server. Replace 'user' with your username and 'host' with the server IP or domain."},
+  {id:"d01",cat:"docker",name:"Run Container (Detached)",cmd:"docker run -d -p <host>:<container> <image>",cmdHasVar:true,desc:"Starts a container in the <em>background</em> (detached mode). The '-p' flag maps your machine's port to the container's port."},
+  {id:"d02",cat:"docker",name:"Open Shell in Container",cmd:"docker exec -it <container_name> bash",cmdHasVar:true,desc:"Opens an interactive terminal inside a running container. Like SSH-ing into a mini computer that lives inside Docker."},
+  {id:"d03",cat:"docker",name:"Stream Container Logs",cmd:"docker logs -f <container_name>",cmdHasVar:true,desc:"Streams live log output from a container. The '-f' flag means follow — keeps watching like tail -f for containers."},
+  {id:"d04",cat:"docker",name:"Build Without Cache",cmd:"docker build --no-cache -t <image-name> .",cmdHasVar:true,desc:"Builds a Docker image from scratch, ignoring any cached layers. Use when a dependency change isn't being picked up.",note:{type:"warning",text:"⚠️ Slower than regular build. Only use when cache causes stale builds."}},
+  {id:"d05",cat:"docker",name:"Compose Up with Build",cmd:"docker-compose up --build",desc:"Starts all services in docker-compose.yml AND rebuilds images first. Use after any Dockerfile change.",note:{type:"tip",text:"✓ vs 'docker-compose up' which uses cached images. Use --build after Dockerfile edits."}},
+  {id:"d06",cat:"docker",name:"System Cleanup",cmd:"docker system prune -a",desc:"Deletes ALL stopped containers, dangling images, and unused networks. Great for reclaiming disk space on your dev machine.",note:{type:"danger",text:"⚠️ -a also removes unused images, not just dangling ones. Completely irreversible."}},
+  {id:"d07",cat:"docker",name:"Copy File from Container",cmd:"docker cp <container>:/path/file.txt ./local/",cmdHasVar:true,desc:"Copies a file from inside a container to your host machine. Useful for extracting logs, configs, or build outputs."},
+  {id:"d08",cat:"docker",name:"Inspect Container Details",cmd:"docker inspect <container_name>",cmdHasVar:true,desc:"Dumps all metadata about a container — IP addresses, mounts, env vars, network settings. The full diagnostic report."},
+  {id:"d09",cat:"docker",name:"Live Container Stats",cmd:"docker stats",desc:"Live dashboard showing CPU, memory, network, and disk I/O for all running containers. Your container performance monitor."},
+  {id:"d10",cat:"docker",name:"List Volumes",cmd:"docker volume ls",desc:"Lists all named Docker volumes — the persistent storage that survives container restarts. Reveals orphaned volumes wasting space."},
+  {id:"d11",cat:"docker",name:"Remove All Containers",cmd:"docker rm -f $(docker ps -aq)",desc:"Forcefully removes all Docker containers currently present on the system, regardless of state.",note:{type:"danger",text:"⚠️ Removes running containers too. All running processes are killed instantly."}},
+  {id:"d12",cat:"docker",name:"Check Running Containers",cmd:"docker ps",desc:"Lists all currently running containers with their IDs, image names, status, and port mappings. Your first diagnostic command."},
+  {id:"d13",cat:"docker",name:"Pull Latest Image",cmd:"docker pull <image>:latest",cmdHasVar:true,desc:"Downloads the latest version of an image from Docker Hub or your configured registry.",note:{type:"tip",text:"✓ Always pull before running in production to ensure you have the latest patches."}},
+  {id:"d14",cat:"docker",name:"Compose Down",cmd:"docker-compose down",desc:"Stops and removes all containers, networks, and the default network created by docker-compose up.",note:{type:"tip",text:"✓ Add --volumes to also remove named volumes. Use -v flag carefully in production."}}
+];
+
+const ERRORS = [
+  {id:"e01",keywords:["permission denied","permission","denied","publickey","access denied"],title:"Permission Denied (publickey)",description:"SSH authentication failed. The private key file has insecure permissions or is not matching the remote host configuration.",fix:"chmod 400 key.pem",altFix:"ssh-add ~/.ssh/id_rsa",tags:["Security fix","Instant apply"]},
+  {id:"e02",keywords:["port already in use","address already in use","eaddrinuse","bind: address already in use"],title:"Port Already in Use",description:"Another process is already listening on the port your app wants to use. You need to kill that process first.",fix:"lsof -i :<port> && kill -9 <PID>",altFix:"fuser -k 3000/tcp",tags:["Port conflict","Process kill"]},
+  {id:"e03",keywords:["container already in use","container name already in use","conflict","container name"],title:"Container Name Already in Use",description:"Docker can't spawn the instance because a container with the same identifier is currently registered in the daemon.",fix:"docker rm -f <container_name>",altFix:"docker system prune",tags:["Force removal","Re-deploy ready"]},
+  {id:"e04",keywords:["no space left","no space","disk full","device full","enospc"],title:"No Space Left on Device",description:"Your disk is full. Docker images, logs, or large files have consumed all available storage.",fix:"docker system prune -a",altFix:"du -sh /* | sort -rh | head -20",tags:["Cleanup","Disk recovery"]},
+  {id:"e05",keywords:["command not found","not found","bash: command"],title:"Command Not Found",description:"The shell can't find the executable. Either it's not installed or not in your PATH environment variable.",fix:"export PATH=$PATH:/usr/local/bin",altFix:"which <command>",tags:["PATH fix","Environment"]},
+  {id:"e06",keywords:["merge conflict","conflict","automatic merge failed"],title:"Git Merge Conflict",description:"Git found overlapping changes in both branches and can't automatically decide which to keep. You need to resolve manually.",fix:"git mergetool",altFix:"git checkout --theirs <file>",tags:["Manual resolve","Use vimdiff"]},
+  {id:"e07",keywords:["fatal: not a git repository","not a git repository","fatal: not a git"],title:"Not a Git Repository",description:"You're running a git command outside of a repository folder, or the .git folder is missing.",fix:"git init",altFix:"cd /path/to/your/repo",tags:["Init repo","Navigate first"]},
+  {id:"e08",keywords:["connection refused","connection timed out","unable to connect","econnrefused"],title:"Connection Refused",description:"The server is not running, not listening on the expected port, or a firewall is blocking the connection.",fix:"curl -v http://localhost:<port>",altFix:"netstat -tulpn | grep LISTEN",tags:["Network debug","Port check"]},
+  {id:"e09",keywords:["cannot find module","module not found","cannot find package"],title:"Module / Package Not Found",description:"Node.js or Python can't find a dependency. You likely need to install packages or your node_modules folder is missing.",fix:"npm install",altFix:"pip install -r requirements.txt",tags:["Install deps","Node / Python"]},
+  {id:"e10",keywords:["rejected","failed to push","push rejected","non-fast-forward"],title:"Git Push Rejected",description:"The remote has changes your local branch doesn't have. You need to pull first before you can push.",fix:"git pull --rebase origin main",altFix:"git fetch && git rebase origin/main",tags:["Pull first","Rebase safe"]},
+  {id:"e11",keywords:["oom","out of memory","killed","memory limit exceeded"],title:"Out of Memory (OOM Kill)",description:"The process was killed by the OS because it exceeded available memory. Check memory limits in Docker or your system.",fix:"docker stats",altFix:"free -h && cat /proc/meminfo",tags:["Memory check","Container limits"]},
+  {id:"e12",keywords:["ssl certificate","certificate verify failed","ssl error","self signed"],title:"SSL Certificate Error",description:"The SSL/TLS certificate is invalid, expired, or self-signed and the client is refusing to connect.",fix:"curl -k https://your-url.com",altFix:"openssl s_client -connect host:443",tags:["SSL bypass","Diagnose cert"]}
+];
+</script>
+<script>
+// ============================================================
+//  APP.JS — INLINE
+// ============================================================
+
+// ── STATE ────────────────────────────────────────────────────
+const S = {
+  cat:'all', q:'', sort:'recent',
+  favs:   JSON.parse(localStorage.getItem('dcn_favs')   ||'[]'),
+  notes:  JSON.parse(localStorage.getItem('dcn_notes')  ||'{}'),
+  custom: JSON.parse(localStorage.getItem('dcn_custom') ||'[]'),
+  folders:JSON.parse(localStorage.getItem('dcn_folders')||'[]'),
+  profile:JSON.parse(localStorage.getItem('dcn_profile')||'{"name":"Developer","handle":"dev","color":"#007acc"}'),
+  view:'dash',
+  noteId:null, editCmdId:null, editFolderId:null
+};
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function uid(){return 'c_'+Date.now()+Math.random().toString(36).slice(2,6)}
+function persist(){
+  localStorage.setItem('dcn_favs',   JSON.stringify(S.favs));
+  localStorage.setItem('dcn_notes',  JSON.stringify(S.notes));
+  localStorage.setItem('dcn_custom', JSON.stringify(S.custom));
+  localStorage.setItem('dcn_folders',JSON.stringify(S.folders));
+  localStorage.setItem('dcn_profile',JSON.stringify(S.profile));
+}
+function allCmds(){return [...COMMANDS,...S.custom]}
+function isFolder(cat){return !['git','linux','docker'].includes(cat)}
+
+// ── BOOT ─────────────────────────────────────────────────────
+function boot(){
+  applyProfile();
+  rebuildFolderNav();
+  rebuildPills();
+  refreshCounts();
+  renderCards();
+  renderFavPreview();
+  fillPopovers();
+  bindAll();
+}
+
+// ── PROFILE ──────────────────────────────────────────────────
+function applyProfile(){
+  const p=S.profile, ini=(p.name||'D')[0].toUpperCase(), c=p.color||'#007acc';
+  document.querySelectorAll('.avatar').forEach(el=>{el.textContent=ini;el.style.background=c});
+  $('profName').textContent  = p.name||'Developer';
+  $('profHandle').textContent= '@'+(p.handle||'dev');
+}
+function $(id){return document.getElementById(id)}
+
+// ── COUNTS ───────────────────────────────────────────────────
+function refreshCounts(){
+  const cmds=allCmds();
+  $('cnt-all').textContent  = cmds.length;
+  $('totalCount').textContent=$('totalLbl').textContent=cmds.length;
+  ['git','linux','docker'].forEach(c=>{const el=$('cnt-'+c);if(el)el.textContent=cmds.filter(x=>x.cat===c).length});
+  S.folders.forEach(f=>{const el=$('cnt-folder-'+f.id);if(el)el.textContent=cmds.filter(x=>x.cat===f.id).length});
+  const nc=Object.values(S.notes).filter(n=>n&&n.trim()).length;
+  $('cnt-fav').textContent  = S.favs.length;
+  $('cnt-notes').textContent= nc;
+  $('favCount').textContent = S.favs.length;
+  $('noteCount').textContent= nc;
+  $('pp-fav').textContent   = S.favs.length;
+  $('pp-notes').textContent = nc;
+  $('pp-folders').textContent= S.folders.length;
+  // Badges
+  const fb=$('favBadge'), nb=$('notesBadge');
+  fb.style.display=S.favs.length?'flex':'none'; fb.textContent=S.favs.length;
+  nb.style.display=nc?'flex':'none'; nb.textContent=nc;
+}
+
+// ── FOLDER NAV ───────────────────────────────────────────────
+function rebuildFolderNav(){
+  const list=$('foldersList');
+  if(!S.folders.length){
+    list.innerHTML='<div style="padding:3px 8px 6px;font-size:11px;color:var(--text3);font-style:italic">No folders yet.</div>';
+    return;
+  }
+  list.innerHTML='';
+  S.folders.forEach(f=>{
+    const cnt=allCmds().filter(c=>c.cat===f.id).length;
+    const btn=document.createElement('button');
+    btn.className='folder-nav-btn'+(S.cat===f.id?' active':'');
+    btn.dataset.cat=f.id;
+    btn.innerHTML=`
+      <span class="folder-emoji">${f.emoji||'📁'}</span>
+      <span>${esc(f.name)}</span>
+      <div class="folder-actions">
+        <button class="folder-action-btn" data-edit-folder="${f.id}" title="Edit"><i class="bi bi-pencil"></i></button>
+        <button class="folder-action-btn" data-add-to-folder="${f.id}" title="Add command"><i class="bi bi-plus"></i></button>
+      </div>
+      <span class="nav-count" id="cnt-folder-${f.id}">${cnt}</span>`;
+    btn.addEventListener('click',e=>{
+      if(e.target.closest('[data-edit-folder]')){openEditFolder(e.target.closest('[data-edit-folder]').dataset.editFolder);return}
+      if(e.target.closest('[data-add-to-folder]')){openAddCmd(null,e.target.closest('[data-add-to-folder]').dataset.addToFolder);return}
+      switchCat(f.id);
+      document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      showView('dash');
+      closeSb();
+    });
+    list.appendChild(btn);
+  });
+  rebuildCatSelect();
+}
+
+function rebuildCatSelect(){
+  const sel=$('cCat');
+  while(sel.options.length>4)sel.remove(4);
+  S.folders.forEach(f=>{const o=new Option(`${f.emoji} ${f.name}`,f.id);sel.appendChild(o)});
+}
+
+// ── PILLS ────────────────────────────────────────────────────
+function rebuildPills(){
+  const row=$('pillsRow');
+  row.querySelectorAll('.pill-custom').forEach(p=>p.remove());
+  S.folders.forEach(f=>{
+    const btn=document.createElement('button');
+    btn.className='pill pill-custom';btn.dataset.cat=f.id;
+    btn.textContent=`${f.emoji} ${f.name}`;
+    btn.classList.toggle('active',S.cat===f.id);
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      S.cat=f.id;
+      document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector(`.folder-nav-btn[data-cat="${f.id}"]`)?.classList.add('active');
+      renderCards();
+    });
+    row.appendChild(btn);
+  });
+}
+
+// ── POPOVERS ─────────────────────────────────────────────────
+function fillPopovers(){
+  // Favorites
+  const fc=allCmds().filter(c=>S.favs.includes(c.id));
+  $('favPopCnt').textContent=fc.length;
+  const fb=$('favPopBody');
+  if(!fc.length){fb.innerHTML='<div class="pop-empty">No favorites yet. Star a command!</div>'}
+  else{
+    fb.innerHTML='';
+    fc.forEach(cmd=>{
+      const d=document.createElement('div');d.className='pop-item';
+      d.innerHTML=`<div class="pop-item-name"><span class="chip chip-${isFolder(cmd.cat)?'custom':cmd.cat}" style="font-size:9px;padding:1px 5px">${cmd.cat}</span>${esc(cmd.name)}</div><div class="pop-item-cmd">${esc(cmd.cmd)}</div>`;
+      d.addEventListener('click',()=>{switchCat('all');showView('dash');closePopovers()});
+      fb.appendChild(d);
+    });
+  }
+  // Notes
+  const ne=Object.entries(S.notes).filter(([,v])=>v&&v.trim());
+  $('notesPopCnt').textContent=ne.length;
+  const nb=$('notesPopBody');
+  if(!ne.length){nb.innerHTML='<div class="pop-empty">No notes yet. Add one from a card!</div>'}
+  else{
+    nb.innerHTML='';
+    ne.forEach(([id,note])=>{
+      const cmd=allCmds().find(c=>c.id===id);if(!cmd)return;
+      const d=document.createElement('div');d.className='pop-item';
+      d.innerHTML=`<div class="pop-item-name"><i class="bi bi-pencil-square" style="color:var(--accent2)"></i>${esc(cmd.name)}</div><div class="pop-item-note">${esc(note)}</div>`;
+      d.addEventListener('click',()=>{openNote(id,cmd.cmd);closePopovers()});
+      nb.appendChild(d);
+    });
+  }
+}
+
+// ── FILTER ───────────────────────────────────────────────────
+function filtered(){
+  let list=allCmds(), q=S.q.toLowerCase().trim();
+  if(S.cat==='favorites') list=list.filter(c=>S.favs.includes(c.id));
+  else if(S.cat!=='all')  list=list.filter(c=>c.cat===S.cat);
+  if(q) list=list.filter(c=>c.name.toLowerCase().includes(q)||c.cmd.toLowerCase().includes(q)||c.desc.toLowerCase().replace(/<[^>]+>/g,'').includes(q));
+  if(S.sort==='az') list=[...list].sort((a,b)=>a.name.localeCompare(b.name));
+  return list;
+}
+
+// ── BUILD CMD DISPLAY ────────────────────────────────────────
+function buildCmd(cmd){
+  if(!/[<>]/.test(cmd.cmd)) return `<code class="cmd-code">${esc(cmd.cmd)}</code>`;
+  const html=esc(cmd.cmd).replace(/&lt;([^&]+)&gt;/g,(_,p)=>`<span class="cmd-var" contenteditable="true" spellcheck="false">&lt;${p}&gt;</span>`);
+  return `<code class="cmd-code">${html}</code>`;
+}
+
+// ── CREATE CARD ELEMENT ──────────────────────────────────────
+function mkCard(cmd){
+  const starred=S.favs.includes(cmd.id);
+  const note=S.notes[cmd.id]||'';
+  const isCustom=!!S.custom.find(c=>c.id===cmd.id);
+  const chipCls=isFolder(cmd.cat)?'chip-custom':`chip-${cmd.cat}`;
+
+  const d=document.createElement('div');
+  d.className=`card${starred?' starred':''}${note?' noted':''}${isCustom?' custom':''}`;
+  d.dataset.id=cmd.id;
+
+  const sysNote=cmd.note?`<div class="sys-note ${cmd.note.type==='danger'?'danger':cmd.note.type==='tip'?'tip':''}">${cmd.note.text}</div>`:'';
+  const userNote=note?`<div class="user-note-block"><i class="bi bi-pencil-square"></i><span>${esc(note)}</span></div>`:'';
+  const editBtn=isCustom?`<button class="card-btn" data-edit-cmd="${cmd.id}" title="Edit"><i class="bi bi-pencil"></i></button>`:'';
+
+  d.innerHTML=`
+    <div class="card-top">
+      <span class="chip ${chipCls}">${cmd.cat}</span>
+      <span class="card-name">${esc(cmd.name)}</span>
+      <div class="card-btns">
+        ${editBtn}
+        <button class="card-btn${note?' active-note':''}" data-note="${cmd.id}" title="Note"><i class="bi bi-pencil-square"></i></button>
+        <button class="card-btn${starred?' active-star':''}" data-star="${cmd.id}" title="${starred?'Unstar':'Star'}"><i class="bi ${starred?'bi-star-fill':'bi-star'}"></i></button>
+      </div>
+    </div>
+    <div class="code-wrap">
+      ${buildCmd(cmd)}
+      <button class="copy-btn">copy</button>
+    </div>
+    <p class="card-desc">${cmd.desc}</p>
+    ${sysNote}${userNote}
+    <div class="card-expand-hint"><i class="bi bi-arrows-fullscreen"></i> click to expand</div>`;
+
+  d.querySelector('.copy-btn').addEventListener('click',function(e){
+    e.stopPropagation();
+    let t='';d.querySelector('.cmd-code').childNodes.forEach(n=>t+=n.textContent||'');
+    navigator.clipboard.writeText(t.trim()).catch(()=>{});
+    this.textContent='✓ copied!';this.classList.add('done');
+    setTimeout(()=>{this.textContent='copy';this.classList.remove('done')},2000);
+  });
+  d.querySelector('[data-star]').addEventListener('click',(e)=>{e.stopPropagation();toggleStar(cmd.id)});
+  d.querySelector('[data-note]').addEventListener('click',(e)=>{e.stopPropagation();openNote(cmd.id,cmd.cmd)});
+  d.querySelector('[data-edit-cmd]')?.addEventListener('click',(e)=>{e.stopPropagation();openEditCmd(cmd.id)});
+  // Click card body to open detail modal
+  d.addEventListener('click',()=>openCardDetail(cmd.id));
+  return d;
+}
+
+// ── RENDER CARDS ─────────────────────────────────────────────
+function renderCards(){
+  const grid=$('mainGrid'), empty=$('emptyState'), list=filtered();
+  // Update title
+  let title='All Commands';
+  if(S.cat==='favorites') title='⭐ Favorites';
+  else if(S.cat==='git')   title='Git Commands';
+  else if(S.cat==='linux') title='Linux Commands';
+  else if(S.cat==='docker')title='Docker Commands';
+  else{const f=S.folders.find(x=>x.id===S.cat);if(f)title=`${f.emoji} ${f.name}`;}
+  $('sectionTitle').textContent=title;
+
+  grid.innerHTML='';
+  if(!list.length){empty.style.display='block';return}
+  empty.style.display='none';
+  list.forEach((cmd,i)=>{const c=mkCard(cmd);c.style.animationDelay=`${i*.035}s`;grid.appendChild(c)});
+}
+
+function renderFavPreview(){
+  const sec=$('favPreviewSection'), grid=$('favPreviewGrid');
+  const favs=allCmds().filter(c=>S.favs.includes(c.id)).slice(0,3);
+  if(!favs.length){sec.style.display='none';return}
+  sec.style.display='block'; grid.innerHTML='';
+  favs.forEach(c=>grid.appendChild(mkCard(c)));
+}
+
+function renderNotesView(){
+  const grid=$('notesGrid'), empty=$('notesEmpty');
+  const entries=Object.entries(S.notes).filter(([,v])=>v&&v.trim());
+  grid.innerHTML='';
+  if(!entries.length){empty.style.display='block';return}
+  empty.style.display='none';
+  entries.forEach(([id],i)=>{
+    const cmd=allCmds().find(c=>c.id===id);if(!cmd)return;
+    const c=mkCard(cmd);c.style.animationDelay=`${i*.04}s`;grid.appendChild(c);
+  });
+}
+
+// ── TOGGLE STAR ──────────────────────────────────────────────
+function toggleStar(id){
+  const i=S.favs.indexOf(id);
+  if(i===-1)S.favs.push(id);else S.favs.splice(i,1);
+  persist();refreshCounts();renderCards();renderFavPreview();fillPopovers();
+}
+
+// ── NOTE MODAL ───────────────────────────────────────────────
+function openNote(id,cmd){
+  S.noteId=id;
+  $('noteCmdRef').textContent=cmd;
+  $('noteTA').value=S.notes[id]||'';
+  $('delNoteBtn').style.display=S.notes[id]?'flex':'none';
+  openModal('noteModal');
+}
+$('saveNoteBtn').addEventListener('click',()=>{
+  const v=$('noteTA').value.trim();
+  if(!S.noteId)return;
+  if(v)S.notes[S.noteId]=v; else delete S.notes[S.noteId];
+  persist();closeModal('noteModal');
+  refreshCounts();renderCards();renderFavPreview();fillPopovers();
+  if(S.view==='notes')renderNotesView();
+});
+$('delNoteBtn').addEventListener('click',()=>{
+  delete S.notes[S.noteId];
+  persist();closeModal('noteModal');
+  refreshCounts();renderCards();renderFavPreview();fillPopovers();
+  if(S.view==='notes')renderNotesView();
+});
+
+// ── ADD/EDIT COMMAND ─────────────────────────────────────────
+function openAddCmd(id=null,defaultCat=null){
+  S.editCmdId=id;
+  const isEdit=!!id;
+  $('cmdModalTitle').innerHTML=`<i class="bi bi-${isEdit?'pencil':'plus-circle'}"></i> ${isEdit?'Edit Command':'Add New Command'}`;
+  $('saveCmdLbl').textContent=isEdit?'Save Changes':'Add Command';
+  $('delCmdBtn').style.display=isEdit?'flex':'none';
+  $('cmdError').style.display='none';
+  if(isEdit){
+    const c=S.custom.find(x=>x.id===id)||{};
+    $('cName').value=c.name||''; $('cCmd').value=c.cmd||'';
+    $('cDesc').value=(c.desc||'').replace(/<[^>]+>/g,'');
+    $('cCat').value=c.cat||''; $('cNoteType').value=c.note?c.note.type:'';
+    $('cNoteText').value=c.note?c.note.text.replace(/^[^ ]+ /,''):'';
+  } else {
+    $('cName').value=$('cCmd').value=$('cDesc').value=$('cNoteText').value='';
+    $('cCat').value=defaultCat||''; $('cNoteType').value='';
+  }
+  openModal('cmdModal');
+}
+function openEditCmd(id){openAddCmd(id)}
+$('saveCmdBtn').addEventListener('click',()=>{
+  const name=$('cName').value.trim(),cmd=$('cCmd').value.trim(),
+        desc=$('cDesc').value.trim(),cat=$('cCat').value,
+        nt=$('cNoteType').value,ntxt=$('cNoteText').value.trim();
+  if(!name||!cmd||!desc||!cat){
+    $('cmdError').textContent='Fill in all required fields.';$('cmdError').style.display='block';return;
+  }
+  $('cmdError').style.display='none';
+  const note=(nt&&ntxt)?{type:nt,text:`${nt==='tip'?'✓':nt==='danger'?'🚨':'⚠️'} ${ntxt}`}:null;
+  const cmdHasVar=/[<>]/.test(cmd);
+  if(S.editCmdId){
+    const i=S.custom.findIndex(c=>c.id===S.editCmdId);
+    if(i>-1)S.custom[i]={...S.custom[i],name,cmd,desc,cat,note,cmdHasVar};
+  } else {
+    S.custom.push({id:uid(),cat,name,cmd,desc,note,cmdHasVar});
+  }
+  persist();closeModal('cmdModal');
+  refreshCounts();renderCards();renderFavPreview();rebuildFolderNav();rebuildPills();
+});
+$('delCmdBtn').addEventListener('click',()=>{
+  S.custom=S.custom.filter(c=>c.id!==S.editCmdId);
+  delete S.notes[S.editCmdId];
+  S.favs=S.favs.filter(id=>id!==S.editCmdId);
+  persist();closeModal('cmdModal');
+  refreshCounts();renderCards();renderFavPreview();fillPopovers();
+});
+
+// ── ADD/EDIT FOLDER ──────────────────────────────────────────
+function openAddFolder(){
+  S.editFolderId=null;
+  $('folderModalTitle').innerHTML='<i class="bi bi-folder-plus"></i> New Folder';
+  $('saveFolderLbl').textContent='Create Folder';
+  $('delFolderBtn').style.display='none';
+  $('fName').value=''; $('fEmoji').value='📁';
+  $('folderError').style.display='none';
+  openModal('folderModal');
+}
+function openEditFolder(id){
+  const f=S.folders.find(x=>x.id===id);if(!f)return;
+  S.editFolderId=id;
+  $('folderModalTitle').innerHTML='<i class="bi bi-folder2-open"></i> Edit Folder';
+  $('saveFolderLbl').textContent='Save Changes';
+  $('delFolderBtn').style.display='flex';
+  $('fName').value=f.name; $('fEmoji').value=f.emoji||'📁';
+  $('folderError').style.display='none';
+  openModal('folderModal');
+}
+$('emojiGrid').addEventListener('click',e=>{
+  const t=e.target.textContent.trim();if(t)$('fEmoji').value=t;
+});
+$('saveFolderBtn').addEventListener('click',()=>{
+  const name=$('fName').value.trim(), emoji=$('fEmoji').value.trim()||'📁';
+  if(!name){$('folderError').textContent='Folder name required.';$('folderError').style.display='block';return}
+  $('folderError').style.display='none';
+  if(S.editFolderId){
+    const i=S.folders.findIndex(f=>f.id===S.editFolderId);
+    if(i>-1)S.folders[i]={...S.folders[i],name,emoji};
+  } else {
+    S.folders.push({id:'folder_'+Date.now().toString(36),name,emoji});
+  }
+  persist();closeModal('folderModal');
+  refreshCounts();rebuildFolderNav();rebuildPills();
+});
+$('delFolderBtn').addEventListener('click',()=>{
+  S.custom=S.custom.filter(c=>c.cat!==S.editFolderId);
+  S.folders=S.folders.filter(f=>f.id!==S.editFolderId);
+  if(S.cat===S.editFolderId)S.cat='all';
+  persist();closeModal('folderModal');
+  refreshCounts();renderCards();rebuildFolderNav();rebuildPills();
+});
+
+// ── PROFILE ──────────────────────────────────────────────────
+function openProfileModal(){
+  const p=S.profile;
+  $('pName').value=p.name||''; $('pHandle').value=p.handle||'';
+  document.querySelectorAll('.av-color').forEach(el=>{el.classList.toggle('active',el.dataset.c===(p.color||'#007acc'))});
+  $('editAvatar').style.background=p.color||'#007acc';
+  $('editAvatar').textContent=(p.name||'D')[0].toUpperCase();
+  openModal('profileModal');
+}
+$('colorGrid').addEventListener('click',e=>{
+  const el=e.target.closest('.av-color');if(!el)return;
+  document.querySelectorAll('.av-color').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');$('editAvatar').style.background=el.dataset.c;
+});
+$('pName').addEventListener('input',function(){
+  const v=this.value.trim();if(v)$('editAvatar').textContent=v[0].toUpperCase();
+});
+$('saveProfileBtn').addEventListener('click',()=>{
+  S.profile={
+    name:$('pName').value.trim()||'Developer',
+    handle:$('pHandle').value.trim().replace(/^@/,'')||'dev',
+    color:document.querySelector('.av-color.active')?.dataset.c||'#007acc'
+  };
+  persist();applyProfile();refreshCounts();closeModal('profileModal');
+  closePopovers();
+});
+
+// ── RESCUE ───────────────────────────────────────────────────
+function buildRescueChips(){
+  const c=$('rescueChips');c.innerHTML='';
+  ERRORS.forEach(e=>{
+    const b=document.createElement('button');b.className='rescue-chip';b.textContent=e.title;
+    b.addEventListener('click',()=>{$('rescueInput').value=e.keywords[0];doRescue(e.keywords[0])});
+    c.appendChild(b);
+  });
+}
+function doRescue(q){
+  const res=$('rescueGrid'); res.innerHTML='';
+  if(!q.trim())return;
+  const ql=q.toLowerCase();
+  const hits=ERRORS.filter(e=>e.keywords.some(k=>ql.includes(k)||k.includes(ql))||e.title.toLowerCase().includes(ql)||e.description.toLowerCase().includes(ql));
+  if(!hits.length){
+    res.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3)"><i class="bi bi-question-circle" style="font-size:32px;display:block;margin-bottom:12px;opacity:.4"></i><p>No solution found. Try: "permission denied", "port in use", "merge conflict"</p></div>`;
+    return;
+  }
+  hits.forEach((e,i)=>{
+    const c=document.createElement('div');c.className='r-card';c.style.animationDelay=`${i*.06}s`;
+    c.innerHTML=`
+      <div class="r-card-head"><div class="r-err-icon"><i class="bi bi-exclamation-triangle-fill"></i></div><span class="r-err-title">${e.title}</span></div>
+      <p class="r-err-desc">${e.description}</p>
+      <div class="r-fix-label"><i class="bi bi-terminal"></i> Recommended Fix</div>
+      <div class="r-fix-box"><code>${esc(e.fix)}</code><button class="copy-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%)">copy</button></div>
+      ${e.altFix?`<div class="r-fix-label" style="margin-top:8px"><i class="bi bi-arrow-repeat"></i> Alternative</div><div class="r-fix-box"><code>${esc(e.altFix)}</code><button class="copy-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%)">copy</button></div>`:''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${e.tags.map(t=>`<span class="r-tag">${t}</span>`).join('')}</div>`;
+    c.querySelectorAll('.copy-btn').forEach(btn=>btn.addEventListener('click',function(){
+      navigator.clipboard.writeText(this.previousElementSibling.textContent.trim()).catch(()=>{});
+      this.textContent='✓ copied!';this.classList.add('done');
+      setTimeout(()=>{this.textContent='copy';this.classList.remove('done')},2000);
+    }));
+    res.appendChild(c);
+  });
+}
+$('rescueInput').addEventListener('input',function(){doRescue(this.value)});
+
+// ── VIEW SWITCHING ───────────────────────────────────────────
+function showView(v){
+  S.view=v;
+  ['dashView','rescueView','notesView'].forEach(id=>$(id).classList.remove('active'));
+  const map={dash:'dashView',rescue:'rescueView',notes:'notesView'};
+  $(map[v])?.classList.add('active');
+  if(v==='rescue')buildRescueChips();
+  if(v==='notes')renderNotesView();
+}
+
+function switchCat(cat){
+  S.cat=cat;S.q='';
+  $('topSearch').value='';$('sbSearch').value='';
+  document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.cat===cat));
+  renderCards();
+}
+
+// ── MODAL HELPERS ────────────────────────────────────────────
+function openModal(id){$(id).classList.add('show')}
+function closeModal(id){$(id).classList.remove('show')}
+function closePopovers(){document.querySelectorAll('.popover').forEach(p=>p.classList.remove('show'))}
+
+// ── THEME ────────────────────────────────────────────────────
+function toggleTheme(){
+  const d=document.documentElement, dark=d.dataset.theme==='dark';
+  d.dataset.theme=dark?'light':'dark';
+  const ico=dark?'bi-sun-fill':'bi-moon-stars-fill', lbl=dark?'Dark Mode':'Light Mode';
+  $('themeIcon').className=`bi ${ico}`;$('themeLabel').textContent=lbl;
+  $('themeIcon2').className=`bi ${ico}`;$('themeLabel2').textContent=lbl;
+}
+
+// ── SIDEBAR ──────────────────────────────────────────────────
+function openSb(){$('sidebar').classList.add('open');$('overlay').classList.add('show')}
+function closeSb(){$('sidebar').classList.remove('open');$('overlay').classList.remove('show')}
+
+// ── BIND ─────────────────────────────────────────────────────
+function bindAll(){
+  // Sidebar built-in nav
+  document.querySelectorAll('.nav-btn[data-cat]').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      switchCat(this.dataset.cat);
+      showView('dash');
+      closeSb();
+    });
+  });
+  // Notes nav
+  $('notesNavBtn').addEventListener('click',()=>{
+    document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));
+    $('notesNavBtn').classList.add('active');
+    showView('notes'); closeSb();
+  });
+  // Rescue nav
+  $('rescueNavBtn').addEventListener('click',()=>{
+    document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));
+    $('rescueNavBtn').classList.add('active');
+    showView('rescue'); closeSb();
+  });
+  // Back buttons
+  $('backRescue').addEventListener('click',()=>{ showView('dash'); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.querySelector('.nav-btn[data-cat="all"]').classList.add('active'); });
+  $('backNotes').addEventListener('click',()=>{ showView('dash'); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.querySelector('.nav-btn[data-cat="all"]').classList.add('active'); });
+  // Search
+  [$('topSearch'),$('sbSearch')].forEach(el=>el.addEventListener('input',function(){
+    S.q=this.value;
+    $('topSearch').value=$('sbSearch').value=this.value;
+    renderCards();
+  }));
+  // Ctrl+K
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();$('topSearch').focus()}
+    if(e.key==='Escape'){
+      closePopovers();
+      if($('cardDetailOverlay').classList.contains('show')){closeCardDetail();return}
+      document.querySelectorAll('.modal-overlay.show').forEach(m=>m.classList.remove('show'))
+    }
+  });
+  // Sort
+  document.querySelectorAll('.sort-btn').forEach(btn=>btn.addEventListener('click',function(){
+    document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');S.sort=this.dataset.sort;renderCards();
+  }));
+  // Built-in pills
+  document.querySelectorAll('.pill:not(.pill-custom)').forEach(p=>p.addEventListener('click',function(){
+    document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');S.cat=this.dataset.cat;
+    document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector(`.nav-btn[data-cat="${this.dataset.cat}"]`)?.classList.add('active');
+    renderCards();
+  }));
+  // View-all buttons (hero + fav section)
+  document.querySelectorAll('[data-goto]').forEach(btn=>btn.addEventListener('click',function(){
+    const g=this.dataset.goto;closePopovers();
+    if(g==='notes'){showView('notes');document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));$('notesNavBtn').classList.add('active')}
+    else{switchCat(g);showView('dash');document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));document.querySelector(`.nav-btn[data-cat="${g}"]`)?.classList.add('active')}
+  }));
+  // Stats cards
+  $('statFav').addEventListener('click',()=>{ switchCat('favorites');document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));$('favNavBtn').classList.add('active') });
+  $('statNotes').addEventListener('click',()=>{ showView('notes');document.querySelectorAll('.nav-btn,.folder-nav-btn').forEach(b=>b.classList.remove('active'));$('notesNavBtn').classList.add('active') });
+  // Add folder
+  $('addFolderBtn').addEventListener('click',openAddFolder);
+  // FAB + empty add
+  $('fab').addEventListener('click',()=>openAddCmd(null,S.cat!=='all'&&S.cat!=='favorites'?S.cat:null));
+  $('emptyAddBtn').addEventListener('click',()=>openAddCmd(null,S.cat!=='all'&&S.cat!=='favorites'?S.cat:null));
+  // Profile
+  $('avatarBtn').addEventListener('click',e=>{
+    e.stopPropagation();
+    const p=$('profilePop');p.classList.toggle('show');
+    document.querySelectorAll('.popover').forEach(x=>{if(x!==p)x.classList.remove('show')});
+  });
+  $('editProfileBtn').addEventListener('click',()=>{closePopovers();openProfileModal()});
+  // Popover toggles (click on icon buttons)
+  [['favPopWrap','favPop'],['notesPopWrap','notesPop']].forEach(([wid,pid])=>{
+    $(wid).querySelector('.icon-btn').addEventListener('click',e=>{
+      e.stopPropagation();
+      const p=$(pid);p.classList.toggle('show');
+      document.querySelectorAll('.popover').forEach(x=>{if(x!==p)x.classList.remove('show')});
+    });
+  });
+  // Close popovers on outside click
+  document.addEventListener('click',e=>{if(!e.target.closest('.pop-wrap'))closePopovers()});
+  // Modal close buttons
+  document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
+  document.querySelectorAll('.modal-overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('show')}));
+  // Theme
+  $('themeBtn').addEventListener('click',toggleTheme);
+  $('themeBtn2').addEventListener('click',toggleTheme);
+  // Hamburger & overlay
+  $('hamburger').addEventListener('click',openSb);
+  $('sbClose').style.display='block';
+  $('sbClose').addEventListener('click',closeSb);
+  $('overlay').addEventListener('click',closeSb);
+}
+
+// ── CARD DETAIL MODAL ────────────────────────────────────────
+let detailCmdId = null;
+
+function openCardDetail(id){
+  const cmd = allCmds().find(c=>c.id===id);
+  if(!cmd) return;
+  detailCmdId = id;
+  const starred = S.favs.includes(id);
+  const note = S.notes[id]||'';
+  const isFolder = !['git','linux','docker'].includes(cmd.cat);
+  const chipCls = isFolder?'chip-custom':`chip-${cmd.cat}`;
+
+  // Populate chip
+  const chip = $('detailChip');
+  chip.className = `chip ${chipCls}`;
+  chip.textContent = cmd.cat;
+
+  $('detailName').textContent = cmd.name;
+
+  // Command display (with editable vars)
+  const dc = $('detailCmd');
+  if(/[<>]/.test(cmd.cmd)){
+    dc.innerHTML = esc(cmd.cmd).replace(/&lt;([^&]+)&gt;/g,(_,p)=>`<span class="cmd-var" contenteditable="true" spellcheck="false">&lt;${p}&gt;</span>`);
+  } else {
+    dc.textContent = cmd.cmd;
+  }
+
+  $('detailDesc').innerHTML = cmd.desc;
+
+  // System note
+  const sn = $('detailSysNote');
+  sn.innerHTML = cmd.note ? `<div class="sys-note ${cmd.note.type==='danger'?'danger':cmd.note.type==='tip'?'tip':''}" style="margin-bottom:10px">${cmd.note.text}</div>` : '';
+
+  // User note
+  $('detailNoteTA').value = note;
+  $('detailDelNoteBtn').style.display = note ? 'flex' : 'none';
+
+  // Star button
+  $('detailStarIcon').className = starred?'bi bi-star-fill':'bi bi-star';
+  $('detailStarLabel').textContent = starred?'Unfavorite':'Favorite';
+  $('detailStarBtn').style.color = starred?'var(--fav)':'';
+
+  $('cardDetailOverlay').classList.add('show');
+  $('cardDetailBox').scrollTop = 0;
+  setTimeout(()=>$('detailNoteTA').focus(),300);
+}
+
+function closeCardDetail(){
+  $('cardDetailOverlay').classList.remove('show');
+  detailCmdId = null;
+}
+
+// Card detail copy button
+$('detailCopyBtn').addEventListener('click',function(){
+  const dc = $('detailCmd');
+  let t=''; dc.childNodes.forEach(n=>t+=n.textContent||'');
+  navigator.clipboard.writeText(t.trim()).catch(()=>{});
+  this.textContent='✓ copied!';this.classList.add('done');
+  setTimeout(()=>{this.textContent='copy';this.classList.remove('done')},2000);
+});
+
+// Card detail star
+$('detailStarBtn').addEventListener('click',function(){
+  if(!detailCmdId)return;
+  toggleStar(detailCmdId);
+  const starred = S.favs.includes(detailCmdId);
+  $('detailStarIcon').className = starred?'bi bi-star-fill':'bi bi-star';
+  $('detailStarLabel').textContent = starred?'Unfavorite':'Favorite';
+  this.style.color = starred?'var(--fav)':'';
+});
+
+// Card detail save note
+$('detailSaveNoteBtn').addEventListener('click',()=>{
+  if(!detailCmdId)return;
+  const v = $('detailNoteTA').value.trim();
+  if(v) S.notes[detailCmdId]=v; else delete S.notes[detailCmdId];
+  persist();
+  $('detailDelNoteBtn').style.display = v?'flex':'none';
+  refreshCounts(); renderCards(); renderFavPreview(); fillPopovers();
+  if(S.view==='notes')renderNotesView();
+  // Visual feedback
+  const btn=$('detailSaveNoteBtn');
+  btn.innerHTML='<i class="bi bi-check-lg"></i> Saved!';
+  btn.style.background='var(--success)';
+  setTimeout(()=>{btn.innerHTML='<i class="bi bi-floppy"></i> Save Note';btn.style.background='';},2000);
+});
+
+// Card detail delete note
+$('detailDelNoteBtn').addEventListener('click',()=>{
+  if(!detailCmdId)return;
+  delete S.notes[detailCmdId];
+  $('detailNoteTA').value='';
+  $('detailDelNoteBtn').style.display='none';
+  persist();refreshCounts();renderCards();renderFavPreview();fillPopovers();
+  if(S.view==='notes')renderNotesView();
+});
+
+// Close card detail
+$('cardDetailClose').addEventListener('click',closeCardDetail);
+$('cardDetailCancel').addEventListener('click',closeCardDetail);
+$('cardDetailOverlay').addEventListener('click',e=>{if(e.target===$('cardDetailOverlay'))closeCardDetail()});
+
+boot();
+</script>
+</body>
+</html>
